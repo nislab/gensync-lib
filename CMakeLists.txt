@@ -1,12 +1,19 @@
 cmake_minimum_required(VERSION 3.6)
 project(gensync)
+
 set(CMAKE_CXX_STANDARD 11)
 
 # if compiled with RECORD, GenSync server and client produce extensive log files
 # that can be used to reproduce exact sync behavior afterwards
-add_definitions(-DRECORD=".gensync")
+set(RECORD_DIR ".gensync" CACHE STRING "location of record directory")
 
-include(CTest)
+option(BUILD_TESTS "build tests" OFF)
+set(DEFAULT_LOG_LEVEL "TEST" CACHE STRING "default log level")
+
+if(BUILD_TESTS)
+    include(CTest)
+endif()
+
 include(GNUInstallDirs)
 
 # include Apache Data Sketches as a header-only library
@@ -33,6 +40,15 @@ set(COMM_DIR_INC ${INCLUDE}/Communicants)
 set(SYNC_DIR_INC ${INCLUDE}/Syncs)
 set(SYNC_BENCH_INC ${INCLUDE}/Benchmarks)
 
+# Test directory structure
+set(TEST_DIR gensync-core/tests)
+set(UNIT_TEST_DIR ${TEST_DIR}/unit)
+set(SYSLONG_TEST_DIR ${TEST_DIR}/sys/long)
+set(BENCHMARK_TEST_DIR ${TEST_DIR}/sys/benchmark)
+
+# Set location of the test runner
+set(TEST_RUNNER ${TEST_DIR}/testRunner.cpp)
+
 # Set file config
 set(SOURCE_FILES
 
@@ -53,6 +69,7 @@ set(SOURCE_FILES
         ${SYNC_DIR}/InterCPISync.cpp
         ${SYNC_DIR}/probCPISync.cpp
         ${SYNC_DIR}/HashSync.cpp
+        ${SYNC_DIR}/GenIBLT.cpp
         ${SYNC_DIR}/IBLT.cpp
         ${SYNC_DIR}/IBLTMultiset.cpp
         ${SYNC_DIR}/IBLTSync.cpp
@@ -62,16 +79,14 @@ set(SOURCE_FILES
         ${SYNC_DIR}/Cuckoo.cpp
         ${SYNC_DIR}/CuckooSync.cpp
         ${SYNC_DIR}/FullSync.cpp
-	${SYNC_DIR}/BloomFilter.cpp
-	${SYNC_DIR}/BloomFilterSync.cpp
+	    ${SYNC_DIR}/BloomFilterSync.cpp
+	    ${SYNC_DIR}/BloomFilter.cpp
+        ${SYNC_DIR}/MET_IBLTSync.cpp
+        ${SYNC_DIR}/MET_IBLT.cpp
 
-        ${BENCH_DIR}/Runner.cpp
         ${BENCH_DIR}/BenchParams.cpp
         ${BENCH_DIR}/FromFileGen.cpp
-
-        ${TOOLS_DIR}/EncodeJoin.cpp
-
-        ${SRC_DIR}/main.cpp)
+    )
 
 set(HEADERS
 
@@ -103,6 +118,7 @@ set(HEADERS
         ${SYNC_DIR_INC}/FullSync.h
         ${SYNC_DIR_INC}/GenSync.h
         ${SYNC_DIR_INC}/HashSync.h
+        ${SYNC_DIR_INC}/GenIBLT.h
         ${SYNC_DIR_INC}/IBLT.h
         ${SYNC_DIR_INC}/IBLTMultiset.h
         ${SYNC_DIR_INC}/IBLTSync.h
@@ -115,31 +131,25 @@ set(HEADERS
         ${SYNC_DIR_INC}/InterCPISync.h
         ${SYNC_DIR_INC}/PrioCPISync.h
         ${SYNC_DIR_INC}/ProbCPISync.h
-	${SYNC_DIR_INC}/BloomFilter.h
-	${SYNC_DIR_INC}/BloomFilterSync.h
+	    ${SYNC_DIR_INC}/BloomFilter.h
+	    ${SYNC_DIR_INC}/BloomFilterSync.h
+	    ${SYNC_DIR_INC}/BloomFilter.h
+        ${SYNC_DIR_INC}/MET_IBLTSync.h
+        ${SYNC_DIR_INC}/MET_IBLT.h
 
         ${SYNC_BENCH_INC}/BenchObserv.h
         ${SYNC_BENCH_INC}/BenchParams.h
         ${SYNC_BENCH_INC}/DataObjectGenerator.h
         ${SYNC_BENCH_INC}/RandGen.h
-        ${SYNC_BENCH_INC}/FromFileGen.h)
-
-include_directories(gensync-core/include)
-# Check if the "includedir" variable is already set
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-        if(NOT DEFINED includedir)
-                set(includedir "/usr/local")
-        endif()
-elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-        if(NOT DEFINED includedir)
-                set(includedir "/opt/local")
-        endif()
-endif()
+        ${SYNC_BENCH_INC}/FromFileGen.h
+    )
 
 # Users may need to update these paths
-include_directories(${includedir}/include)
-link_directories(${includedir}/lib)
-link_directories(${includedir}/lib64)
+set(DEPENDENCIES /opt/local)
+
+include_directories(${DEPENDENCIES}/include)
+link_directories(${DEPENDENCIES}/lib)
+link_directories(${DEPENDENCIES}/lib64)
 
 include_directories(${CMAKE_INSTALL_INCLUDEDIR})
 link_directories(${CMAKE_INSTALL_LIBDIR})
@@ -148,6 +158,11 @@ link_directories(${CMAKE_INSTALL_LIBDIR})
 add_library(gensync STATIC ${SOURCE_FILES} ${HEADERS})
 target_include_directories(gensync PRIVATE ${CMAKE_SOURCE_DIR}/gensync-core/include)
 TARGET_LINK_LIBRARIES(gensync ntl cppunit pthread gmp)
+target_include_directories(gensync PUBLIC
+        incubator-datasketches-cpp/common/include
+        incubator-datasketches-cpp/hll/include
+        incubator-datasketches-cpp/fi/include
+)
 
 install(CODE "FILE(REMOVE_RECURSE ${CMAKE_INSTALL_INCLUDEDIR}/gensync)") #Remove the existing GenSync library data and reinstall
 install(CODE "FILE(REMOVE_RECURSE ${CMAKE_INSTALL_LIBDIR}/libgensync.a)") #Remove the existing GenSync library data and reinstall

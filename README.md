@@ -1,204 +1,119 @@
 # GenSync-lib
 
-GenSync-lib is the version for packaging. It provides a library for synchronizing data _efficiently_ across different machines on MacOS and Linux.  The library
-includes implmenetations of several state-of-the-art protocols that optimize different metrics, including:
+GenSync-lib is a library-generating wrapper around [gensync-core](gensync-core), in a version suitable
+for packaging. This library provides a means for synchronizing data _efficiently_ across
+different machines on MacOS and Linux.  The library  includes implmenetations of several
+state-of-the-art protocols that optimize different metrics, including:
 * ___Communication___ - total number of bytes transmitted
 * ___Rounds___ - the amount of back-and-forth needed to compelte synchronization
 * ___Computation___ - computing resources required
 * ___Memory___ - amount of physical memory needed
 
-The current version is 2.0.4
+The current version is 2.1.1
 
 ------------------------------
 
 ## Table Of Contents
-- [Examples](#Examples)
 - [Usage](#UseInstructions)
-    - [Builder Parameters](#BuilderParameters)
-    - [Sync Types](#SyncTypes)
+  - [Installation](#Installation)
+  - [Examples](#Examples)
+- [Development](#Development)
+  - [Builder Parameters](#BuilderParameters)
+  - [Sync Types](#SyncTypes)
 - [References](#References)
     - [Contributors](#Contributors)
-    - [Installation/Compilation](#Installation/Compilation)
+
+------------------------------
+
+<a name="Installation"></a>
+### Installation:
+The easiest way to install the Gensync library `libgensync.a` is through mac ports:
+```shell
+port install gensync
+```
+Macports installs `libgensync.a` in the directory `[MACPORTS dir]/lib`, and the header files
+in `[MACPORTS dir]/include`.   It should also install any needed dependencies.
+
+#### Compilation from scratch
+For non-apple machines, the library should be compiled from scratch, based
+on the following dependencies (for full-featured usage):
+    * [NTL](https://libntl.org/) - A library for doing Number Theory (>9.5)
+        - ptheads - may be required depending on how NTL is configured
+        - gmp - may be required depending on how NTL is configured
+    * [cppunit](https://cppunit.sourceforge.net/doc/cvs/index.html) - For testing
+    * [cmake](https://cmake.org) - For building
+
+With dependencies installed, compilation proceeds as follows:
+```
+$ git clone --recurse-submodules git@github.com:nislab/gensync-lib.git
+$ cd gensync-lib
+$ cmake -B build
+$ cmake --build build
+```
+
+This will produce the library `libgensync.a` in the `build` directory.
 
 
 <a name="Examples"></a>
-## Examples
+## Example 1 - TryMe.cpp
+This repository includes a file `TryMe.cpp` that demonstrates the Gensync library in action.
 
-Here is a simple example of GenSync in action.  It can be compiled as follows, with `/opt/local` replaced by your MacPorts directory, or if on Linux replaced by your libraries directory:
+If the Gensync library and header files are placed within the default paths, the code can be
+compiled and run as follows:
+```shell
+$ g++ -std=c++11 TryMe.cpp -lgensync -lntl -o tryme
+$ ./tryme
+```
 
-### TryMe.cpp
-This program launches two processes, connected by a network socket:
-* The first process (host 1) contains a set with elements 'a', 'b', and 'c'.
-* The second process (host 2) contains a set of elements 'b' and 'd'.
-
-#### Compilation
-On MacOS, the program can be compiled with
+If the library and header files are placed in directories `/opt/local/include` and `/opt/local/lib`
+respectively (as typically done by mac ports), then the program can be compiled and run as follows:
 ```shell
 $ g++ -I/opt/local/include -L/opt/local/lib -std=c++11 TryMe.cpp -lgensync -lntl -o tryme
 $ ./tryme
 ```
-On Linux, the program can be compiled with
-```shell
-$ g++ -I/usr/local/include -L/usr/local/lib -std=c++11 TryMe.cpp -lgensync -lntl -o tryme
-$ ./tryme
-```
+On linux, the directories are typically `/usr/local/include` and `/usr/loca/lib`, but any directories
+can be subsituted above.
+
 #### Output
-The output from the program shows both hosts with the same sets (note that the order of elements within a set does not matter):
+This `tryme` program launches two processes, connected through a network socket:
+* The first process (host 1) contains a set with elements 'a', 'b', and 'c'.
+* The second process (host 2) contains a set of elements 'b' and 'd'.
+
+The output from the program shows each host discovering the union of both sets
+(note that the order of elements within a set does not matter):
 ```
 host 1 now has a b c d 
 host 2 now has b d c a 
 ```
 
-#### Code
-```cpp
-#include <iostream>
-#include <GenSync/Syncs/GenSync.h>
+### Example 2 - TryMe2.cpp
+A more generalized example can be found in `TryMe2.cpp`, which allows the user to select
+various synchronization parameters from the command-line.
 
-int main() {
-  // BUILD the first host
-  GenSync host1 = GenSync::Builder().
-    setProtocol(GenSync::SyncProtocol::CPISync). // CPISync protocol
-    setComm(GenSync::SyncComm::socket).		 // communicate over network sockets
-    setMbar(5).					 // required parameter for CPISync
-    build();
-  
-  // BUILD the second host
-  GenSync host2 = GenSync::Builder().
-    setProtocol(GenSync::SyncProtocol::CPISync).
-    setComm(GenSync::SyncComm::socket).
-    setMbar(5).
-    build();
+It can be compiled into an executable `tryme2` in a similar manner to `tryme`
+(just with `TryMe2.cpp` replacing `TryMe.cpp`).
 
-  // ADD elements to each host
-  // ... host 1
-  host1.addElem(make_shared<DataObject>('a')); // DataObject containing a character 'a'
-  host1.addElem(make_shared<DataObject>('b'));
-  host1.addElem(make_shared<DataObject>('c'));
+To run the code, open two shell terminals.
 
-  // ... host 2
-  host2.addElem(make_shared<DataObject>('b'));
-  host2.addElem(make_shared<DataObject>('d'));
-
-  // FORK into two processes
-  if (fork()) {
-      // ... PARENT process
-      host1.clientSyncBegin(0);		     // set up the 0-th synchronizer and connect to a server
-      cout << "host 1 now has ";
-      for (auto &i: host1.dumpElements())    // print out the elements at host 1
-	cout << i << " ";
-      cout << endl;
-    }
-    else {
-      // ... CHILD process
-      host2.serverSyncBegin(0);		      // set up the 0-th synchronizer and wait for connections
-      cout << "host 2 now has ";
-      for (auto &i: host2.dumpElements())     // print out the elements at host 2
-	cout << i << " ";
-      cout << endl;
-    }
-  
-  }
-```
-
-### TryMe2.cpp
-A more complicated example allows the user to select various synchronization parameters from the command-line.
-```cpp
-#include <iostream>
-#include <GenSync/Syncs/GenSync.h>
-
-using std::cout;
-using std::endl;
-using std::string;
-
-int main(int argc, char *argv[]) {
-    if(argc<=1 || strcmp(argv[1], "client")!=0 && strcmp(argv[1], "server")!=0) {
-      cout << "usage: '"
-	   << argv[0]
-	   << " client <sync type>' for client mode, 'TryMe server <sync type>' for server mode." << endl;
-        cout << "run the client in one terminal instance and the server in another." << endl;
-        exit(0);
-    }
-
-    GenSync::SyncProtocol prot;
-    string type = string(argv[2]);
-
-    // no string switch statements :(
-    if(type == "CPISync") {
-        prot = GenSync::SyncProtocol::CPISync;
-    } else if (type == "InterCPISync") {
-        prot = GenSync::SyncProtocol::InteractiveCPISync;
-    } else if (type == "OneWayCPISync") {
-        prot = GenSync::SyncProtocol::OneWayCPISync;
-    } else if (type == "FullSync") {
-        prot = GenSync::SyncProtocol::FullSync;
-    } else if (type == "IBLTSync") {
-        prot = GenSync::SyncProtocol::IBLTSync;
-    } else if (type == "OneWayIBLTSync") {
-        prot = GenSync::SyncProtocol::OneWayIBLTSync;
-    } else {
-        cout << "invalid sync type!" << endl;
-        exit(1);
-    }
-
-    const int PORT = 8001; // port on which to connect
-    const int ERR = 8; // inverse log of error chance
-    const int M_BAR = 1; // max differences between server and client
-    const int BITS = CHAR_BIT; // bits per entry
-    const int PARTS = 3; // partitions per level for partition-syncs
-    const int EXP_ELTS = 4; // expected number of elements per set
-
-    GenSync genSync = GenSync::Builder().
-			setProtocol(prot).
-			setComm(GenSync::SyncComm::socket).
-			setPort(PORT).
-			setErr(ERR).
-			setMbar(M_BAR).
-			setBits((prot == GenSync::SyncProtocol::IBLTSync || prot == GenSync::SyncProtocol::OneWayIBLTSync ? BITS : BITS * CHAR_BIT)).
-			setNumPartitions(PARTS).
-			setExpNumElems(EXP_ELTS).
-            build();
-
-    genSync.addElem(make_shared<DataObject>('a'));
-    genSync.addElem(make_shared<DataObject>('b'));
-    genSync.addElem(make_shared<DataObject>('c'));
-
-    if(strcmp(argv[1], "client")==0) {
-        genSync.addElem(make_shared<DataObject>('d'));
-
-        cout << "listening on port " << PORT << "..." << endl;
-		genSync.clientSyncBegin(0);
-        cout << "sync succeeded." << endl;
-
-    } else {
-        genSync.addElem(make_shared<DataObject>('e'));
-
-        cout << "connecting on port " << PORT << "..." << endl;
-		genSync.serverSyncBegin(0);
-        cout << "sync succeeded." << endl;
-    }
-}
-```
-On MacOS, to compile use:
+#### Terminal 1
+In one terminal, issue the command:
 ```shell
-$ g++ -I/opt/local/include -L/opt/local/lib -std=c++11 tryme2.cpp -lgensync -lntl -o tryme2
-```
-On Linux, to compile use:
-```shell
-$ g++ -I/usr/local/include -L/usr/local/lib -std=c++11 tryme2.cpp -lgensync -lntl -o tryme2
-```
-To run, open two terminals.  In one issue the command:
-```
 $ ./tryme2 server CPISync
 connecting on port 8001...
 sync succeeded.
 ```
 
-In a second, issue the command:
-```angular2html
+This creates a server listening on port 8001 to synchronization requests from clients.
+
+#### Terminal 2
+In a second terminal, issue the command:
+```shell
 $ ./tryme2 client CPISync
 listening on port 8001...
 sync succeeded.
 ```
+
+This connects
 
 <a name="UseInstructions"></a>
 ## Extended Use Instructions:
@@ -383,26 +298,6 @@ Elements of the GenSync project code have been worked on, at various points, by:
 * Novak Boškov
 * Xingyu Chen
 * Nathan Strahs
-
-<a name="Installation/Compilation"></a>
-### Installation/Compilation:
-
-* Macports installs the Gensync library in `[MACPORTS dir]/lib`, and the header files in `[MACPORTS dir]/include`.
-* _Troubleshooting_
-    * For issues with macports installation, refer to the default [README](https://github.com/nislab/gensync-core/blob/master/README.md)
-* _Dependencies:_
-    * [NTL](http://www.shoup.net/ntl/) - A library for doing Number Theory (>9.5)
-        - ptheads - may be required depending on how NTL is configured
-        - gmp - may be required depending on how NTL is configured
-    * [cppunit](http://cppunit.sourceforge.net/doc/cvs/index.html) - For testing
-    * [cmake](https://cmake.org) - For building
-* _Source-based Compilation:_
-```
-$ git clone --recurse-submodules git@github.com:nislab/gensync-lib.git
-$ cd gensync-lib
-$ cmake -B build
-$ cmake --build build
-```
 
 
 # Acknowledgments:
