@@ -1,6 +1,6 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.10)
 project(gensync)
-set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD 17)
 
 # if compiled with RECORD, GenSync server and client produce extensive log files
 # that can be used to reproduce exact sync behavior afterwards
@@ -15,16 +15,19 @@ include_directories(gensync-core/incubator-datasketches-cpp/common/include
                     gensync-core/incubator-datasketches-cpp/fi/include)
 
 # some flags
-set(CMAKE_CXX_FLAGS "-std=c++11 -DDEFAULT_LOGLEVEL=TEST")
+set(CMAKE_CXX_FLAGS "-std=c++${CMAKE_CXX_STANDARD} -DDEFAULT_LOGLEVEL=TEST")
 
-# Set project directory strucuture
-set(SRC_DIR gensync-core/src)
+# Set project directory structure
+set(ROOT_DIR gensync-core)
+set(SRC_DIR ${ROOT_DIR}/src)
 set(AUX_DIR ${SRC_DIR}/Aux)
 set(DATA_DIR ${SRC_DIR}/Data)
 set(COMM_DIR ${SRC_DIR}/Communicants)
 set(SYNC_DIR ${SRC_DIR}/Syncs)
 set(BENCH_DIR ${SRC_DIR}/Benchmarks)
 set(TOOLS_DIR ${SRC_DIR}/Tools)
+set(TESTS_DIR ${ROOT_DIR}/tests)
+set(UNIT_TESTS_DIR ${TESTS_DIR}/unit)
 
 set(INCLUDE gensync-core/include/GenSync)
 set(AUX_DIR_INC ${INCLUDE}/Aux)
@@ -62,8 +65,8 @@ set(SOURCE_FILES
         ${SYNC_DIR}/Cuckoo.cpp
         ${SYNC_DIR}/CuckooSync.cpp
         ${SYNC_DIR}/FullSync.cpp
-	${SYNC_DIR}/BloomFilter.cpp
-	${SYNC_DIR}/BloomFilterSync.cpp
+	    ${SYNC_DIR}/BloomFilter.cpp
+	    ${SYNC_DIR}/BloomFilterSync.cpp
 
         ${BENCH_DIR}/Runner.cpp
         ${BENCH_DIR}/BenchParams.cpp
@@ -115,8 +118,8 @@ set(HEADERS
         ${SYNC_DIR_INC}/InterCPISync.h
         ${SYNC_DIR_INC}/PrioCPISync.h
         ${SYNC_DIR_INC}/ProbCPISync.h
-	${SYNC_DIR_INC}/BloomFilter.h
-	${SYNC_DIR_INC}/BloomFilterSync.h
+	    ${SYNC_DIR_INC}/BloomFilter.h
+	    ${SYNC_DIR_INC}/BloomFilterSync.h
 
         ${SYNC_BENCH_INC}/BenchObserv.h
         ${SYNC_BENCH_INC}/BenchParams.h
@@ -155,8 +158,56 @@ install(TARGETS gensync LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} ARCHIVE DEST
 install(DIRECTORY DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GenSync) #create a new folder for GenSync inside of the system include directory
 install(DIRECTORY ${AUX_DIR_INC} ${DATA_DIR_INC} ${COMM_DIR_INC} ${SYNC_DIR_INC} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/GenSync COMPONENT devel) #copy the contents of the include folder into the system include directory
 
+# CppUnit tests
+# ... find cppunit include and library, if it exists
+find_path(CPPUNIT_INCLUDE_DIR cppunit/TestRunner.h
+        PATHS /usr/include /usr/local/include /opt/local/include
+)
+find_library(CPPUNIT_LIBRARY cppunit
+        PATHS /usr/lib /usr/local/lib /opt/local/lib
+)
+if (CPPUNIT_INCLUDE_DIR AND CPPUNIT_LIBRARY)
+    message(STATUS "✅ CppUnit found: Enabling unit tests.")
+    file(GLOB TEST_SOURCES ${UNIT_TESTS_DIR}/*.cpp) # detect test files
+    include_directories(${TESTS_DIR})
+    add_executable(test_runner ${TEST_SOURCES} ${TESTS_DIR}/testRunner.cpp
+            gensync-core/tests/unit/AuxiliaryTest.cpp
+            gensync-core/tests/unit/AuxiliaryTest.h
+            gensync-core/tests/unit/BloomFilterSyncTest.cpp
+            gensync-core/tests/unit/BloomFilterSyncTest.h
+            gensync-core/tests/unit/BloomFilterTest.cpp
+            gensync-core/tests/unit/BloomFilterTest.h
+            gensync-core/tests/unit/CommSocketTest.cpp
+            gensync-core/tests/unit/CommSocketTest.h
+            gensync-core/tests/unit/CommStringTest.cpp
+            gensync-core/tests/unit/CommStringTest.h
+            gensync-core/tests/unit/CommunicantTest.cpp
+            gensync-core/tests/unit/CommunicantTest.h
+            gensync-core/tests/unit/Compact2DBitArrayTest.cpp
+            gensync-core/tests/unit/Compact2DBitArrayTest.h
+            gensync-core/tests/unit/CPISyncTest.cpp
+            gensync-core/tests/unit/CPISyncTest.h
+            gensync-core/tests/unit/CuckooSyncTest.cpp
+            gensync-core/tests/unit/CuckooSyncTest.h
+            gensync-core/tests/unit/CuckooTest.cpp
+            gensync-core/tests/unit/CuckooTest.h
+            gensync-core/tests/unit/DataObjectTest.cpp
+            gensync-core/tests/unit/DataObjectTest.h
+            gensync-core/tests/unit/DataPriorityObjectTest.cpp
+            gensync-core/tests/unit/DataPriorityObjectTest.h
+            gensync-core/tests/unit/FullSyncTest.cpp
+            gensync-core/tests/unit/FullSyncTest.h
+            gensync-core/tests/unit/IBLTSetOfSetsTest.cpp
+            gensync-core/tests/unit/CPISyncTest.cpp)
+    target_link_libraries(test_runner )
+    enable_testing()
+    add_test(NAME UnitTests COMMAND test_runner)
+else()
+    message(WARNING "CppUnit NOT found.  Skipping unit tests.")
+endif()
 
-#Packaging
+
+    #Packaging
 set(CPACK_GENERATOR "RPM;DEB")
 set(CPACK_PACKAGE_VERSION ${VERSION})
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "A library for remote file synchronization research")
@@ -165,7 +216,7 @@ set(CPACK_RESOURCE_FILE_LICENSE ${CMAKE_SOURCE_DIR}/LICENSE)
 set(CPACK_PACKAGE_NAME "GenSync")
 set(CPACK_PACKAGE_VERSION_MAJOR "2")
 set(CPACK_PACKAGE_VERSION_MINOR "0")
-set(CPACK_PACKAGE_VERSION_PATCH "3")
+set(CPACK_PACKAGE_VERSION_PATCH "5")
 set(CPACK_PACKAGE_CONTACT "Ari Trachtenberg")
 set(CPACK_PACKAGE_VENDOR "NISLAB")
 set(CPACK_PACKAGING_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
