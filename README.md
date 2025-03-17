@@ -49,7 +49,14 @@ The library can be compiled from scratch on a linux/unix or Mac computer as foll
 $ git clone --recurse-submodules git@github.com:nislab/gensync-lib.git
 $ cd gensync-lib
 $ cmake -B build
-$ cd build; make
+$ cd build
+$ make
+```
+
+To run unit and system tests, from the `build` directory:
+```
+$ test_unit_runner
+$ test_sys_runner
 ```
 
 To install the library and include headers in their default locations (with root access), you can also run:
