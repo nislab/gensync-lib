@@ -28,6 +28,7 @@ set(BENCH_DIR ${SRC_DIR}/Benchmarks)
 set(TOOLS_DIR ${SRC_DIR}/Tools)
 set(TESTS_DIR ${ROOT_DIR}/tests)
 set(UNIT_TESTS_DIR ${TESTS_DIR}/unit)
+set(SYS_TESTS_DIR ${TESTS_DIR}/sys)
 
 set(INCLUDE gensync-core/include/GenSync)
 set(AUX_DIR_INC ${INCLUDE}/Aux)
@@ -167,41 +168,36 @@ find_library(CPPUNIT_LIBRARY cppunit
         PATHS /usr/lib /usr/local/lib /opt/local/lib
 )
 if (CPPUNIT_INCLUDE_DIR AND CPPUNIT_LIBRARY)
-    message(STATUS "✅ CppUnit found: Enabling unit tests.")
+    message(STATUS "CppUnit found: Enabling unit and systemtests.")
     file(GLOB TEST_SOURCES ${UNIT_TESTS_DIR}/*.cpp) # detect test files
-    include_directories(${TESTS_DIR})
-    add_executable(test_runner ${TEST_SOURCES} ${TESTS_DIR}/testRunner.cpp
-            gensync-core/tests/unit/AuxiliaryTest.cpp
-            gensync-core/tests/unit/AuxiliaryTest.h
-            gensync-core/tests/unit/BloomFilterSyncTest.cpp
-            gensync-core/tests/unit/BloomFilterSyncTest.h
-            gensync-core/tests/unit/BloomFilterTest.cpp
-            gensync-core/tests/unit/BloomFilterTest.h
-            gensync-core/tests/unit/CommSocketTest.cpp
-            gensync-core/tests/unit/CommSocketTest.h
-            gensync-core/tests/unit/CommStringTest.cpp
-            gensync-core/tests/unit/CommStringTest.h
-            gensync-core/tests/unit/CommunicantTest.cpp
-            gensync-core/tests/unit/CommunicantTest.h
-            gensync-core/tests/unit/Compact2DBitArrayTest.cpp
-            gensync-core/tests/unit/Compact2DBitArrayTest.h
-            gensync-core/tests/unit/CPISyncTest.cpp
-            gensync-core/tests/unit/CPISyncTest.h
-            gensync-core/tests/unit/CuckooSyncTest.cpp
-            gensync-core/tests/unit/CuckooSyncTest.h
-            gensync-core/tests/unit/CuckooTest.cpp
-            gensync-core/tests/unit/CuckooTest.h
-            gensync-core/tests/unit/DataObjectTest.cpp
-            gensync-core/tests/unit/DataObjectTest.h
-            gensync-core/tests/unit/DataPriorityObjectTest.cpp
-            gensync-core/tests/unit/DataPriorityObjectTest.h
-            gensync-core/tests/unit/FullSyncTest.cpp
-            gensync-core/tests/unit/FullSyncTest.h
-            gensync-core/tests/unit/IBLTSetOfSetsTest.cpp
-            gensync-core/tests/unit/CPISyncTest.cpp)
-    target_link_libraries(test_runner )
+    add_executable(test_unit_runner ${TEST_SOURCES} ${TESTS_DIR}/testRunner.cpp
+            ${UNIT_TESTS_DIR}/AuxiliaryTest.cpp
+            ${UNIT_TESTS_DIR}/BloomFilterSyncTest.cpp
+            ${UNIT_TESTS_DIR}/BloomFilterTest.cpp
+            ${UNIT_TESTS_DIR}/CommSocketTest.cpp
+            ${UNIT_TESTS_DIR}/CommStringTest.cpp
+            ${UNIT_TESTS_DIR}/CommunicantTest.cpp
+            ${UNIT_TESTS_DIR}/Compact2DBitArrayTest.cpp
+            ${UNIT_TESTS_DIR}/CPISyncTest.cpp
+            ${UNIT_TESTS_DIR}/CuckooSyncTest.cpp
+            ${UNIT_TESTS_DIR}/CuckooTest.cpp
+            ${UNIT_TESTS_DIR}/DataObjectTest.cpp
+            ${UNIT_TESTS_DIR}/DataPriorityObjectTest.cpp
+            ${UNIT_TESTS_DIR}/FullSyncTest.cpp
+            ${UNIT_TESTS_DIR}/IBLTSetOfSetsTest.cpp
+            ${UNIT_TESTS_DIR}/CPISyncTest.cpp
+    )
+    target_include_directories(test_unit_runner PRIVATE ${TESTS_DIR} ${UNIT_TESTS_DIR}/include)
+    target_link_libraries(test_unit_runner gensync ntl cppunit pthread gmp)
+    add_executable(test_sys_runner ${TEST_SOURCES} ${TESTS_DIR}/testRunner.cpp
+            ${SYS_TESTS_DIR}/benchmark/BenchmarkTest.cpp
+            ${SYS_TESTS_DIR}/long/GenericSyncTests.cpp
+    )
+    target_include_directories(test_sys_runner PRIVATE ${TESTS_DIR} ${UNIT_TESTS_DIR}/include)
+    target_link_libraries(test_sys_runner gensync ntl cppunit pthread gmp)
     enable_testing()
-    add_test(NAME UnitTests COMMAND test_runner)
+    add_test(NAME UnitTests COMMAND test_unit_runner)
+    add_test(NAME SystemTests COMMAND test_sys_runner)
 else()
     message(WARNING "CppUnit NOT found.  Skipping unit tests.")
 endif()

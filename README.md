@@ -48,7 +48,8 @@ The library can be compiled from scratch on a linux/unix or Mac computer as foll
 ```
 $ git clone --recurse-submodules git@github.com:nislab/gensync-lib.git
 $ cd gensync-lib
-$ cmake .
+$ cmake -B build
+$ cd build; make
 ```
 
 To install the library and include headers in their default locations (with root access), you can also run:
