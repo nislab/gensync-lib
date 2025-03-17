@@ -129,21 +129,11 @@ set(HEADERS
         ${SYNC_BENCH_INC}/FromFileGen.h)
 
 include_directories(gensync-core/include)
-# Check if the "includedir" variable is already set
-if(${CMAKE_SYSTEM_NAME} STREQUAL "Linux")
-        if(NOT DEFINED includedir)
-                set(includedir "/usr/local")
-        endif()
-elseif(${CMAKE_SYSTEM_NAME} STREQUAL "Darwin")
-        if(NOT DEFINED includedir)
-                set(includedir "/opt/local")
-        endif()
-endif()
 
-# Users may need to update these paths
-include_directories(${includedir}/include)
-link_directories(${includedir}/lib)
-link_directories(${includedir}/lib64)
+# Users may need to update these paths - common locations are used
+include_directories(/usr/local/include /opt/local/include)
+link_directories(/usr/local/lib /opt/local/lib)
+link_directories(/usr/local/lib64 /opt/local/lib64)
 
 include_directories(${CMAKE_INSTALL_INCLUDEDIR})
 link_directories(${CMAKE_INSTALL_LIBDIR})
