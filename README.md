@@ -58,6 +58,7 @@ To run unit and system tests, from the `build` directory:
 $ test_unit_runner
 $ test_sys_runner
 ```
+(_Note:_  Some unit tests do not work in environments that limit `fork`, like newer Mac OS versions.)
 
 To install the library and include headers in their default locations (with root access), you can also run:
 ```
@@ -111,7 +112,7 @@ A more complicated example allows the user to select various synchronization par
 
 The program can be compiled with
 ```shell
-$ g++ -I${}GEN_INCLUDE} -L${GEN_LIB} -std=c++17 gensync-lib/gensnc-core/src/TryMe2.cpp -lgensync -lntl -o tryme2
+$ g++ -I${GEN_INCLUDE} -L${GEN_LIB} -std=c++17 gensync-lib/gensnc-core/src/TryMe2.cpp -lgensync -lntl -o tryme2
 ```
 
 To run, open two terminals.  In one issue the command:
