@@ -27,11 +27,11 @@ The current version is 2.0.5
 <a name="Installation/Compilation"></a>
 ### Installation/Compilation:
 The library is supported on linux/unix or mac (not Windows) and sports several dependencies, which should be installed first:
-* [NTL](http://www.shoup.net/ntl/) - A library for doing Number Theory (>9.5)
+- [NTL](http://www.shoup.net/ntl/) - A library for doing Number Theory (>9.5)
   - ptheads - may be required depending on how NTL is configured
   - [gmp](https://gmplib.org/) - may be required depending on how NTL is configured
-* [cppunit](http://cppunit.sourceforge.net/doc/cvs/index.html) - For testing the code
-* [cmake](https://cmake.org) - For building the library
+- [cppunit](http://cppunit.sourceforge.net/doc/cvs/index.html) - For testing the code
+- [cmake](https://cmake.org) - For building the library
 
 There are several ways to install the library:
 #### MacPorts
@@ -49,8 +49,7 @@ The library can be compiled from scratch on a linux/unix or Mac computer as foll
 $ git clone --recurse-submodules git@github.com:nislab/gensync-lib.git
 $ cd gensync-lib
 $ cmake -B build
-$ cd build
-$ make
+$ cmake --build build
 ```
 
 To run unit and system tests, from the `build` directory:
