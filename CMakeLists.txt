@@ -160,7 +160,7 @@ find_library(CPPUNIT_LIBRARY cppunit
 if (CPPUNIT_INCLUDE_DIR AND CPPUNIT_LIBRARY)
     message(STATUS "CppUnit found: Enabling unit and systemtests.")
     file(GLOB TEST_SOURCES ${UNIT_TESTS_DIR}/*.cpp) # detect test files
-    add_executable(test_unit_runner ${TEST_SOURCES} ${TESTS_DIR}/testRunner.cpp
+    add_executable(test_unit_runner ${TEST_SOURCES} ${TESTS_DIR}/TestRunner.cpp
             ${UNIT_TESTS_DIR}/AuxiliaryTest.cpp
             ${UNIT_TESTS_DIR}/BloomFilterSyncTest.cpp
             ${UNIT_TESTS_DIR}/BloomFilterTest.cpp
@@ -179,7 +179,7 @@ if (CPPUNIT_INCLUDE_DIR AND CPPUNIT_LIBRARY)
     )
     target_include_directories(test_unit_runner PRIVATE ${TESTS_DIR} ${UNIT_TESTS_DIR}/include)
     target_link_libraries(test_unit_runner gensync ntl cppunit pthread gmp)
-    add_executable(test_sys_runner ${TEST_SOURCES} ${TESTS_DIR}/testRunner.cpp
+    add_executable(test_sys_runner ${TEST_SOURCES} ${TESTS_DIR}/TestRunner.cpp
             ${SYS_TESTS_DIR}/benchmark/BenchmarkTest.cpp
             ${SYS_TESTS_DIR}/long/GenericSyncTests.cpp
     )
