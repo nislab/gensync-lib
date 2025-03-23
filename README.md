@@ -110,7 +110,7 @@ A more complicated example allows the user to select various synchronization par
 
 The program can be compiled with
 ```shell
-$ g++ -I${}GEN_INCLUDE} -L${GEN_LIB} -std=c++17 gensync-lib/gensnc-core/src/TryMe2.cpp -lgensync -lntl -o tryme2
+$ g++ -I${GEN_INCLUDE} -L${GEN_LIB} -std=c++17 gensync-lib/gensnc-core/src/TryMe2.cpp -lgensync -lntl -o tryme2
 ```
 
 To run, open two terminals.  In one issue the command:
